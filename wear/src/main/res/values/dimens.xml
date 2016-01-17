@@ -5,10 +5,13 @@
     <dimen name="digital_text_size_round">45dp</dimen>
     <dimen name="digital_text_date_size">18dp</dimen>
     <dimen name="digital_text_date_size_round">22dp</dimen>
+    <dimen name="digital_text_temp_size">25dp</dimen>
+    <dimen name="digital_text_temp_size_round">28dp</dimen>
     <dimen name="digital_x_offset">15dp</dimen>
     <dimen name="digital_x_offset_round">25dp</dimen>
-    <dimen name="digital_y_offset">90dp</dimen>
+    <dimen name="digital_y_offset">60dp</dimen>
     <dimen name="digital_text_date_y_offset">35dp</dimen>
     <dimen name="digital_separated_line_width">50dp</dimen>
     <dimen name="digital_separated_line_y_offset">60dp</dimen>
+    <dimen name="digital_text_temp_y_offset">100dp</dimen>
 </resources>
