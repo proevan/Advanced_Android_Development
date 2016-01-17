@@ -56,10 +56,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Analog watch face with a ticking second hand. In ambient mode, the second hand isn't shown. On
- * devices with low-bit ambient mode, the hands are drawn without anti-aliasing in ambient mode.
- */
+
 public class MyWatchFace extends CanvasWatchFaceService {
     public final String LOG_TAG = MyWatchFace.class.getSimpleName();
     /**
