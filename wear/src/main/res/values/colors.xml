@@ -3,4 +3,7 @@
     <color name="background">#000000</color>
     <color name="background2">#000088</color>
     <color name="analog_hands">#cccccc</color>
+    <color name="digital_background">#2BA3E8</color>
+    <color name="digital_text">#ffffff</color>
+    <color name="digital_text_date">#80ffffff</color>
 </resources>

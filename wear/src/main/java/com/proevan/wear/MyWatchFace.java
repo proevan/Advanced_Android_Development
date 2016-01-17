@@ -25,6 +25,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -32,8 +33,12 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
 import android.view.SurfaceHolder;
+import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +57,9 @@ public class MyWatchFace extends CanvasWatchFaceService {
      * Handler message id for updating the time periodically in interactive mode.
      */
     private static final int MSG_UPDATE_TIME = 0;
+
+    private static final Typeface NORMAL_TYPEFACE =
+            Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
     @Override
     public Engine onCreateEngine() {
@@ -100,6 +108,20 @@ public class MyWatchFace extends CanvasWatchFaceService {
          */
         boolean mLowBitAmbient;
 
+        Paint mTextPaint;
+        Paint mTextDatePaint;
+
+        float mTextDateYOffSet;
+        float mSeparatedLineYOffSet;
+
+        SimpleDateFormat mDateFormat;
+        Calendar mCalendar;
+
+        float mXOffset;
+        float mYOffset;
+
+        float mSeparatedLineWidth;
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -113,16 +135,37 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             Resources resources = MyWatchFace.this.getResources();
 
+            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            mTextDateYOffSet = resources.getDimension(R.dimen.digital_text_date_y_offset);
+            mSeparatedLineYOffSet = resources.getDimension(R.dimen.digital_separated_line_y_offset);
+
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(resources.getColor(R.color.background));
+            mBackgroundPaint.setColor(resources.getColor(R.color.digital_background));
 
-            mHandPaint = new Paint();
-            mHandPaint.setColor(resources.getColor(R.color.analog_hands));
-            mHandPaint.setStrokeWidth(resources.getDimension(R.dimen.analog_hand_stroke));
-            mHandPaint.setAntiAlias(true);
-            mHandPaint.setStrokeCap(Paint.Cap.ROUND);
+            mTextPaint = new Paint();
+            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
+            mTextDatePaint = new Paint();
+            mTextDatePaint = createTextPaint(resources.getColor(R.color.digital_text_date));
+
+            mSeparatedLineWidth = resources.getDimension(R.dimen.digital_separated_line_width);
+
+            mCalendar = Calendar.getInstance();
+            initFormats();
             mTime = new Time();
+        }
+
+        private void initFormats() {
+            mDateFormat = new SimpleDateFormat("EEE, MMM dd yyyy", Locale.getDefault());
+            mDateFormat.setCalendar(mCalendar);
+        }
+
+        private Paint createTextPaint(int textColor) {
+            Paint paint = new Paint();
+            paint.setColor(textColor);
+            paint.setTypeface(NORMAL_TYPEFACE);
+            paint.setAntiAlias(true);
+            return paint;
         }
 
         @Override
@@ -186,42 +229,32 @@ public class MyWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             mTime.setToNow();
+            long now = System.currentTimeMillis();
+            mCalendar.setTimeInMillis(now);
 
             // Draw the background.
-            if (isInAmbientMode()) {
-                canvas.drawColor(Color.BLACK);
-            } else {
-                canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), mBackgroundPaint);
-            }
+            canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
 
-            // Find the center. Ignore the window insets so that, on round watches with a
-            // "chin", the watch face is centered on the entire screen, not just the usable
-            // portion.
-            float centerX = bounds.width() / 2f;
-            float centerY = bounds.height() / 2f;
+            String timeText = getTimeText();
+            float widthTimeText = mTextPaint.measureText(timeText);
+            float xOffsetTimeText = (bounds.width() - widthTimeText) / 2;
+            canvas.drawText(timeText, xOffsetTimeText, mYOffset, mTextPaint);
 
-            float secRot = mTime.second / 30f * (float) Math.PI;
-            int minutes = mTime.minute;
-            float minRot = minutes / 30f * (float) Math.PI;
-            float hrRot = ((mTime.hour + (minutes / 60f)) / 6f) * (float) Math.PI;
+            String dateText = getDateText();
+            float widthDateText = mTextDatePaint.measureText(dateText);
+            float xOffsetDateText = (bounds.width() - widthDateText) / 2;
+            canvas.drawText(dateText, xOffsetDateText, mYOffset + mTextDateYOffSet, mTextDatePaint);
 
-            float secLength = centerX - 20;
-            float minLength = centerX - 40;
-            float hrLength = centerX - 80;
+            float xOffsetSeparatedLine = (bounds.width() - mSeparatedLineWidth) / 2;
+            canvas.drawLine(xOffsetSeparatedLine, mYOffset + mSeparatedLineYOffSet, xOffsetSeparatedLine + mSeparatedLineWidth, mYOffset + mSeparatedLineYOffSet, mTextDatePaint);
+        }
 
-            if (!mAmbient) {
-                float secX = (float) Math.sin(secRot) * secLength;
-                float secY = (float) -Math.cos(secRot) * secLength;
-                canvas.drawLine(centerX, centerY, centerX + secX, centerY + secY, mHandPaint);
-            }
+        private String getTimeText() {
+            return String.format("%02d:%02d", mTime.hour, mTime.minute);
+        }
 
-            float minX = (float) Math.sin(minRot) * minLength;
-            float minY = (float) -Math.cos(minRot) * minLength;
-            canvas.drawLine(centerX, centerY, centerX + minX, centerY + minY, mHandPaint);
-
-            float hrX = (float) Math.sin(hrRot) * hrLength;
-            float hrY = (float) -Math.cos(hrRot) * hrLength;
-            canvas.drawLine(centerX, centerY, centerX + hrX, centerY + hrY, mHandPaint);
+        private String getDateText() {
+            return mDateFormat.format(mCalendar.getTime());
         }
 
         @Override
@@ -234,6 +267,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 // Update time zone in case it changed while we weren't visible.
                 mTime.clear(TimeZone.getDefault().getID());
                 mTime.setToNow();
+                mCalendar.setTimeZone(TimeZone.getDefault());
+                initFormats();
             } else {
                 unregisterReceiver();
             }
@@ -258,6 +293,24 @@ public class MyWatchFace extends CanvasWatchFaceService {
             }
             mRegisteredTimeZoneReceiver = false;
             MyWatchFace.this.unregisterReceiver(mTimeZoneReceiver);
+        }
+
+        @Override
+        public void onApplyWindowInsets(WindowInsets insets) {
+            super.onApplyWindowInsets(insets);
+
+            // Load resources that have alternate values for round watches.
+            Resources resources = MyWatchFace.this.getResources();
+            boolean isRound = insets.isRound();
+            mXOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
+            float textSize = resources.getDimension(isRound
+                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
+            float textDateSize = resources.getDimension(isRound
+                    ? R.dimen.digital_text_date_size_round : R.dimen.digital_text_date_size);
+
+            mTextPaint.setTextSize(textSize);
+            mTextDatePaint.setTextSize(textDateSize);
         }
 
         /**
